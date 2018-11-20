@@ -2,7 +2,7 @@
 
 #
 # This script is intended to generate interface ranges from individual interface list.
-# Written by Viktor Kertesz <viktor.kertesz@exxonmobil.com>
+# Written by Viktor Kertesz <vkertesz2@gmail.com>
 # Version 1.0
 # Example: Gi1/0/1, Gi1/0/2, Gi1/0/3 = Gi1/0/1-3
 # Different type of interfaces or ports are supported (maximum 4 parts: Gi101/1/0/1)
