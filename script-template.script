@@ -1,0 +1,25 @@
+#Usage:
+# Every line is a configuration item which will be executed in config mode
+# Lines starting with '#' are comment, script doesn't bother
+# Empty lines are ignored
+# Lines starting with '!' are commands for the script.
+# Commands:
+# !clear {something} : script will run config "no {^something.*}
+#
+# !getvar {varname} {regex (var value)}:
+#                      get var value and put into varname
+#                      This allows for dynamic variable management
+#                    
+# !quit              : quit the script immediately
+#                      (good for testing/tshooting)
+# !replace "{search}" "{replace}"      :
+#                      replace input with defined string
+#                      example:
+#         !replace "privilege ([a-z]+) level [0-9]+ (.*)" "privilege $1 reset $2"
+#                      
+#
+# #variable# are variables which will be substitued with something
+# Variables are read from scripts.cfg [variables] section
+# [clean-asa-variables]
+# localuser=admin
+# localpass=secret
