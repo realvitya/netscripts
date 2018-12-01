@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 ###############################################
 # Dot1x cleaning from switches                #
+# Currently this script needs custom textfsm  #
+# template fot dot1x portlist!                #
+# The working template can be obtained:       #
+# https://github.com/realvitya/ntc-templates  #
+# You just have to keep it in $HOME           #
 ###############################################
 
 from __future__ import print_function, unicode_literals
@@ -11,7 +16,6 @@ from multiprocessing.pool import ThreadPool
 from ConfigParser import SafeConfigParser
 from getpass import getpass
 from netmiko import ConnectHandler
-from int2range import int2range
 import signal
 import sys
 
