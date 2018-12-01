@@ -168,7 +168,7 @@ def worker(device):
         output: ['USER_ACCESS_TEMPLATE','MULTIAUTH_ACCESS_TEMPLATE']
         '''
         controlpolicies = conn.send_command("sh run | i ^policy-map type control subscriber")
-        controlpolicies = re.findall('policy-map type control subscriber (\w+)',controlpolicies,re.M)
+        controlpolicies = re.findall('policy-map type control subscriber ([0-9a-zA-Z_/]+)',controlpolicies,re.M)
         #  Clear policies from interfaces
         for cp in controlpolicies:
             cp_interfaces = findallportswith(conn, ' service-policy type control subscriber %s' % cp)
@@ -415,6 +415,18 @@ Example:
             password = c[1]
         elif c[0] == 'enable':
             enable = c[1]
+
+    #  If we have group specific cred, then overwrite the global ones
+    if 'credentials-'+devicegroup in config.sections():
+        for c in config.items('credentials-'+devicegroup):
+            if c[0] == 'username':
+                username = c[1]
+            elif c[0] == 'password':
+                password = c[1]
+            elif c[0] == 'enable':
+                enable = c[1]
+
+
     if username == "":
         username = raw_input("Username: ")
     if password == "":
