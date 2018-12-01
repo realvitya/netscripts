@@ -54,6 +54,7 @@ def worker(device):
         #conn.config_mode()
         #  For dynamic variables:
         variables = dict()
+        config_apply = list()
 
         for line in script:
             '''
@@ -77,12 +78,22 @@ def worker(device):
                 config = match.group(2)
                 configs = []
 
+                #  Send collected configs to device before handling commands
+                if len(config_apply)>0:
+                    out = conn.send_config_set(config_apply,exit_config_mode=False)
+                    config_apply = list()
                 do = "do "
                 if dryrun or device['device_type'] == 'cisco_asa':
                     do = ""
                 if command == "clear":
                     configs = conn.send_command(do + "show run | i ^%s" % config).split("\n")
                     configs = ["no %s" % c for c in configs if len(c)>0]
+                    #  Append an enter for commands with confirmation (e.g. no username)
+                    cout = list()
+                    for c in configs:
+                        cout.append(c)
+                        cout.append("\n")
+                    configs = cout
                 elif command == "getvar":
                     varmatch = re.match("(\w+) (.*)", config)
                     if not varmatch:
@@ -147,9 +158,12 @@ def worker(device):
                 if dryrun:
                     print("%s - cmd: %s" % (device['host'], line))
                 else:
-                    out = conn.send_config_set(line,exit_config_mode=False)
+                    #out = conn.send_config_set(line,exit_config_mode=False)
+                    config_apply.append(line)
 
 
+        if len(config_apply)>0:
+            out = conn.send_config_set(config_apply)
         #conn.exit_config_mode()
         conn.disconnect()
         print("%s - done" % device['host'])
@@ -258,6 +272,8 @@ Example:
     try:
         if re.match("asa-.*", devicegroup):
             devicetype = "cisco_asa"
+        elif re.match("telnet-.*", devicegroup):
+            devicetype = "cisco_ios_telnet"
         else:
             devicetype = "cisco_ios"
         for device in devices_conf.items(devicegroup):
@@ -279,7 +295,7 @@ Example:
     try:
         scriptname = scriptfile.split(".")[0]
         scriptfile = file(scriptfile)
-        script = [line.rstrip('\n') for line in scriptfile if re.match('^[^#\n]',line)]
+        script = [line.rstrip('\n') for line in scriptfile if re.match('^[^#]',line)]
 
         for variable, value in config.items('variables-' + scriptname):
             script = [line.replace("#"+variable+"#", value) for line in script]
