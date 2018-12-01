@@ -1,15 +1,24 @@
-[credentials]
+#  Global variables
+[global]
 username = globaluser
 password = globalpass
+enable   = enablepass
+logging  = yes
+storage  = ftp://1.1.1.1/bak
+logdir   = .
 
+#  Group specific settings
+#  Groups are defined in devices.txt which are the sections
+#
+#  Group specific credentials
 [credentials-asa-all]
 username = asauser
 password = asapass
 enable   = asaenable
 
-[file]
-storage=ftp://1.1.1.1/bak
-
+#  Group specific variables
+#  These variables can be referenced in script between ##-s
+#  example: banner motd #banner#
 [variables-asa-all]
 localuser  = user1
 localpass  = pass1

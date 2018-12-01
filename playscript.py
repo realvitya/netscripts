@@ -35,19 +35,24 @@ import re
 import os
 from multiprocessing.pool import ThreadPool
 from ConfigParser import SafeConfigParser
+from ConfigParser import NoSectionError
 from getpass import getpass
 from netmiko import ConnectHandler
 import signal
 import sys
 
+from netscript import create_devices
+from netscript import load_config
+from netscript import clean_device
+
 def worker(device):
-    global logging
     global dryrun
     global script
 
     templatescleared = False
     descriptions = dict()
     try:
+        device = clean_device(device)
         conn = ConnectHandler(**device)
         conn.enable()
         print("%s - logged in" % device['host'])
@@ -182,18 +187,13 @@ def load_config():
     return config
 
 def main():
-    global logging
     global dryrun
     global script
 
     signal.signal(signal.SIGPIPE, signal.SIG_DFL) # IOError: Broken pipe
     signal.signal(signal.SIGINT, signal.SIG_DFL) # KeyboardInterrupt: Ctrl-C
-    devices_conf = load_devices("devices.txt")
-    config = load_config()
-    devices = list()
+
     numthreads = 4
-    logging = True
-    logdir = "."
     dryrun = True
     helptext = """
 Help:
@@ -210,10 +210,6 @@ Example:
 
 
     #  Load config file
-    username = ""
-    password = ""
-    enable = ""
-
     devicegroup = ""
     scriptfile = ""
 
@@ -242,63 +238,20 @@ Example:
         print(helptext)
         return 1
 
-    #  Read global config
-    for c in config.items('credentials'):
-        if c[0] == 'username':
-            username = c[1]
-        elif c[0] == 'password':
-            password = c[1]
-        elif c[0] == 'enable':
-            enable = c[1]
-
-    #  If we have group specific cred, then overwrite the global ones
-    if 'credentials-'+devicegroup in config.sections():
-        for c in config.items('credentials-'+devicegroup):
-            if c[0] == 'username':
-                username = c[1]
-            elif c[0] == 'password':
-                password = c[1]
-            elif c[0] == 'enable':
-                enable = c[1]
-
-    if username == "":
-        username = raw_input("Username: ")
-    if password == "":
-        password = getpass()
-    if enable == "":
-        enable = getpass("Enable: ")
-
-    #  Load switches from inventory
-    try:
-        if re.match("asa-.*", devicegroup):
-            devicetype = "cisco_asa"
-        elif re.match("telnet-.*", devicegroup):
-            devicetype = "cisco_ios_telnet"
-        else:
-            devicetype = "cisco_ios"
-        for device in devices_conf.items(devicegroup):
-            d={'device_type' : devicetype,
-               'host' : device[0],
-               'username' : username,
-               'password' : password,
-               'secret'   : enable,
-               'global_delay_factor': 2,
-              }
-            if logging:
-                d['session_log'] = "%s/%s.log" % (logdir,device[0])
-                d['session_log_file_mode'] = "append"
-            devices.append(d)
-
-    except Exception, e:
-        print("Configread: %s" % e)
+    config = load_config()
+    devices = create_devices("devices.txt", config, devicegroup)
 
     try:
         scriptname = scriptfile.split(".")[0]
         scriptfile = file(scriptfile)
         script = [line.rstrip('\n') for line in scriptfile if re.match('^[^#]',line)]
 
-        for variable, value in config.items('variables-' + scriptname):
-            script = [line.replace("#"+variable+"#", value) for line in script]
+        try:
+            for variable, value in config.items('variables-' + scriptname):
+                script = [line.replace("#"+variable+"#", value) for line in script]
+        except NoSectionError:
+            #  No variables for this script. No problem.
+            pass
 
         #for line in script:
         #    print(line)
