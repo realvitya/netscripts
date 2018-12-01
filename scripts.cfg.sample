@@ -1,0 +1,23 @@
+[credentials]
+username = globaluser
+password = globalpass
+
+[credentials-asa-all]
+username = asauser
+password = asapass
+enable   = asaenable
+
+[file]
+storage=ftp://1.1.1.1/bak
+
+[variables-asa-all]
+localuser  = user1
+localpass  = pass1
+ntpserver1 = 1.2.3.4
+banner =
+ ******************************
+ * This is a multiline banner *
+ * This must be idented!      *
+ ******************************
+ =
+
