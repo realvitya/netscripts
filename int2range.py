@@ -13,6 +13,7 @@
 # int2range [options] [interfacefile]
 # Options:
 # -p "{prefix}"    : Write prefix instead of "interface range" (empty is "")
+# Empty inputfile means read from standard input
 
 import os
 import sys
@@ -145,21 +146,34 @@ def main():
                     del sys.argv[1]
                     prefix = sys.argv[1]
 		    del sys.argv[1]
+	    if len(sys.argv)>1:
+		if sys.argv[1] == "-h" or sys.argv[1] == "--help":
+		    print "Help:"
+            	    print "int2range [-p {prefix}] [inputfile]"
+		    print
+            	    print "Empty inputfile means read from standard input"
+            	    print "If prefix is omitted, cisco standard will be used (interface range )"
+		    return 1
             if len(sys.argv)>1:
                 f=open(sys.argv[1],"r")
             else:
+		print "Hit ENTER and CTRL-D to indicate end of input!"
                 f=sys.stdin
         except:
             print "Error opening %s" % input
-            print "Help:"
-            print "int2range [-p {prefix}] [inputfile]"
             raise
-        for line in f:
-	    lines.append(line)
+
+	#  Read file/stdin
+        while True:
+            line = f.readline()
+            if not line:
+                break
+            lines.append(line)
 
         f.close()
 
-	print int2range(prefix=prefix,ports_in=lines)
+	for range in int2range(prefix=prefix,ports_in=lines):
+	    print range
 	return
 
 if __name__ == "__main__":
