@@ -12,7 +12,7 @@
 # Input is read on standard input or by specifying file
 # int2range [options] [interfacefile]
 # Options:
-# -n     : Do not write "interface range" prefix in output
+# -p "{prefix}"    : Write prefix instead of "interface range" (empty is "")
 
 import os
 import sys
@@ -137,7 +137,29 @@ def int2range(ports_in=[], prefix = "interface range "):
         return output
 
 def main():
-	print int2range(['Gi0/1'])
+    	lines = []
+        prefix = "interface range "
+        try:
+            if len(sys.argv)>1:
+                if sys.argv[1] == "-p":
+                    del sys.argv[1]
+                    prefix = sys.argv[1]
+		    del sys.argv[1]
+            if len(sys.argv)>1:
+                f=open(sys.argv[1],"r")
+            else:
+                f=sys.stdin
+        except:
+            print "Error opening %s" % input
+            print "Help:"
+            print "int2range [-p {prefix}] [inputfile]"
+            raise
+        for line in f:
+	    lines.append(line)
+
+        f.close()
+
+	print int2range(prefix=prefix,ports_in=lines)
 	return
 
 if __name__ == "__main__":
