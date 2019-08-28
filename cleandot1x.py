@@ -412,7 +412,7 @@ Example:
         return 1
 
     #  Read global config
-    for c in config.items('credentials'):
+    for c in config.items('global'):
         if c[0] == 'username':
             username = c[1]
         elif c[0] == 'password':

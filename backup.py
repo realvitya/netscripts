@@ -22,12 +22,19 @@ def worker(device):
 
     try:
         storage = device['ns_extra']['storage']
-        destination = storage + device['host']
 
         device = clean_device(device)
         conn = ConnectHandler(**device)
         conn.enable()
 	print("%s - connected" % device['host'])
+
+        out = conn.send_command("sh run | i ^hostname")
+        m = re.match("hostname (.*)", out)
+        if m:
+            destination = storage + m.group(1)
+        else:
+            destination = storage + device['host']
+
 
         conn.send_command("write memory")
         if device['device_type'] != "cisco_asa":
@@ -49,6 +56,9 @@ def worker(device):
             out=conn.send_command("copy /noconfirm running-config %s" % destination + ".cfg")
             if re.match('.*bytes copied .*',out,re.S):
                 print("%s - config saved" % device['host'])
+            out=conn.send_command("failover exec mate copy /noconfirm running-config %s" % destination + "-standby.cfg")
+            if re.match('.*bytes copied .*',out,re.S):
+                print("%s-standby - config saved" % device['host'])
             out=conn.send_command("changeto system")
             if not re.match(".*ERROR:.*|.*Command not valid.*", out, re.S): #  successfully went into system context
                 conn.send_command("write memory")
@@ -56,6 +66,9 @@ def worker(device):
                 out=conn.send_command("copy /noconfirm running-config %s" % destination + ".cfg")
                 if re.match('.*bytes copied .*',out,re.S):
                     print("%s - system config saved" % device['host'])
+                out=conn.send_command("failover exec mate copy /noconfirm running-config %s" % destination + "-standby.cfg")
+                if re.match('.*bytes copied .*',out,re.S):
+                    print("%s-standby - system config saved" % device['host'])
 
         conn.disconnect()
 

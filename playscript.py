@@ -200,6 +200,7 @@ Help:
     Play script on devices
 cmd [-f] [-s {scriptfile}]
     -f              : force change on devices
+    -t {threadnum}  : number of worker threads
     -g {group}      : use this group from scripts.cfg (run on these devices)
     -s {scriptfile} : play script from this file
                       If not specified, read script from standard input first
@@ -219,6 +220,10 @@ Example:
             while len(sys.argv) > 1:
                 if sys.argv[1] == "-f":
                     dryrun = False
+                    del sys.argv[1]
+                elif sys.argv[1] == "-t":
+                    numthreads = int(sys.argv[2])
+                    del sys.argv[1]
                     del sys.argv[1]
                 elif sys.argv[1] == "-g":
                     devicegroup = sys.argv[2]
