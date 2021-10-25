@@ -3,7 +3,7 @@
 from __future__ import print_function, unicode_literals
 import re
 import os
-from ConfigParser import SafeConfigParser
+from configparser import SafeConfigParser
 from getpass import getpass
 import sys
 
@@ -33,6 +33,7 @@ def create_devices(device_file, config, devicegroup):
     logging = False
     logdir = "."
     storage = ""
+    storage_dir = "."
     #  Read global config
     for c in config.items('global'):
         if c[0] == 'username':
@@ -48,6 +49,8 @@ def create_devices(device_file, config, devicegroup):
             logdir = c[1]
         elif c[0] == 'storage':
             storage = c[1]
+        elif c[0] == 'storage_dir':
+            storage_dir = os.path.expanduser(c[1])
     #  If we have group specific cred, then overwrite the global ones
     if 'credentials-'+devicegroup in config.sections():
         for c in config.items('credentials-'+devicegroup):
@@ -59,14 +62,14 @@ def create_devices(device_file, config, devicegroup):
                 enable = c[1]
 
     if username == "":
-        username = raw_input("Username: ")
+        username = input("Username: ")
     if password == "":
         password = getpass()
     if enable == "":
         enable = getpass("Enable: ")
     if storage == "":
         print("Please specify storage URL. e.g: ftp://1.1.1.1 (if empty, then assuming it's not needed)")
-        storage = raw_input("storage URL: ")
+        storage = input("storage URL: ")
     if len(storage)>1:
         if storage[-1] != "/":
             storage+="/"
@@ -74,6 +77,8 @@ def create_devices(device_file, config, devicegroup):
     try:
         if re.match("asa-.*", devicegroup):
             devicetype = "cisco_asa"
+        elif "wlc-" in devicegroup:
+            devicetype = "cisco_wlc_ssh"
         elif re.match("telnet-.*", devicegroup):
             devicetype = "cisco_ios_telnet"
         else:
@@ -85,14 +90,14 @@ def create_devices(device_file, config, devicegroup):
                'password'           : password,
                'secret'             : enable,
                'global_delay_factor': 2,
-               'ns_extra'           : {'storage' : storage},
+               'ns_extra'           : {'storage' : storage, 'storage_dir': storage_dir},
               }
             if logging:
-                d['session_log'] = "%s/%s.log" % (logdir,device[0])
+                d['session_log'] = "%s/%s.log" % (os.path.expanduser(logdir),device[0])
                 d['session_log_file_mode'] = "append"
             devices.append(d)
 
-    except Exception, e:
+    except Exception as e:
         print("Configread: %s" % e)
 
     return devices

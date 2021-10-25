@@ -8,7 +8,7 @@ import threading
 import re
 import os
 from multiprocessing.pool import ThreadPool
-from ConfigParser import SafeConfigParser
+from configparser import SafeConfigParser
 from getpass import getpass
 from netmiko import ConnectHandler
 import signal
@@ -21,23 +21,27 @@ def worker(device):
     global dryrun
 
     try:
-        storage = device['ns_extra']['storage']
+        storage = device['ns_extra'].get('storage')
+        storage_dir = device['ns_extra'].get('storage_dir', ".")
 
         device = clean_device(device)
         conn = ConnectHandler(**device)
         conn.enable()
-	print("%s - connected" % device['host'])
+        print("%s - connected" % device['host'])
 
-        out = conn.send_command("sh run | i ^hostname")
-        m = re.match("hostname (.*)", out)
-        if m:
-            destination = storage + m.group(1)
-        else:
-            destination = storage + device['host']
+        #out = conn.send_command("sh run | i ^hostname")
+        #m = re.match("hostname (.*)", out)
+        #if m:
+        #    destination = storage + m.group(1)
+        #else:
+        #    destination = storage + device['host']
+        out = conn.find_prompt()[:-1]
+        destination = storage + out
 
 
-        conn.send_command("write memory")
-        if device['device_type'] != "cisco_asa":
+        if not dryrun:
+            conn.send_command("write memory")
+        if "cisco_ios" in device['device_type']:
             # disable file prompt
             conn.send_config_set("file prompt quiet")
 
@@ -52,7 +56,7 @@ def worker(device):
                 print("%s - vlan.dat saved" % device['host'])
             
             conn.send_config_set("no file prompt")
-        else: #  ASA
+        elif device['device_type'] == "cisco_asa": #  ASA
             out=conn.send_command("copy /noconfirm running-config %s" % destination + ".cfg")
             if re.match('.*bytes copied .*',out,re.S):
                 print("%s - config saved" % device['host'])
@@ -61,7 +65,8 @@ def worker(device):
                 print("%s-standby - config saved" % device['host'])
             out=conn.send_command("changeto system")
             if not re.match(".*ERROR:.*|.*Command not valid.*", out, re.S): #  successfully went into system context
-                conn.send_command("write memory")
+                if not dryrun:
+                    conn.send_command("write memory")
                 destination += "-system"
                 out=conn.send_command("copy /noconfirm running-config %s" % destination + ".cfg")
                 if re.match('.*bytes copied .*',out,re.S):
@@ -69,10 +74,19 @@ def worker(device):
                 out=conn.send_command("failover exec mate copy /noconfirm running-config %s" % destination + "-standby.cfg")
                 if re.match('.*bytes copied .*',out,re.S):
                     print("%s-standby - system config saved" % device['host'])
+        elif device['device_type'] == "cisco_wlc_ssh":
+            out=conn.send_command("show run-config commands")
+            with open(f"{storage_dir}/{device['host'].upper()}.cfg", "w") as fo:
+                fo.writelines(out)
+            conn.cleanup()
+        else:
+            print(f"{device['host']} - unknown devicetype: {device['device_type']}")
+
+
 
         conn.disconnect()
 
-    except Exception, e:
+    except Exception as e:
         print("%s - error: %s" % (device['host'],e))
 
 def main():
